@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <meta name="theme-color" content="#09090b" />
+  <link rel="manifest" href="/manifest.webmanifest">
+  <title>NusaVoice AI — Generator Audio & Voice Over Nusantara</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box}body{font-family:Inter,system-ui,sans-serif;background:#09090b;color:#f4f4f5}
+    .glass{background:rgba(24,24,27,.78);border:1px solid rgba(63,63,70,.75);backdrop-filter:blur(14px)}
+    .btn{transition:.18s transform,.18s opacity,.18s background}.btn:active{transform:scale(.98)}
+    .wave{height:90px;display:flex;align-items:center;justify-content:center;gap:3px;overflow:hidden}
+    .bar{width:3px;border-radius:8px;background:#a1a1aa;opacity:.65;animation:wave 1s ease-in-out infinite}
+    .bar:nth-child(3n){animation-delay:.15s}.bar:nth-child(4n){animation-delay:.3s}.bar:nth-child(5n){animation-delay:.45s}
+    @keyframes wave{0%,100%{height:12px}50%{height:54px}}
+    input[type=range]{accent-color:#a78bfa}
+    textarea{resize:vertical;min-height:230px}
+    .toast{animation:toast .25s ease-out}@keyframes toast{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
+  </style>
+</head>
+<body>
+  <div id="toastRoot" class="fixed right-4 bottom-4 z-50 space-y-2"></div>
+  <header class="sticky top-0 z-40 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
+      <div>
+        <div class="text-xl font-extrabold tracking-tight">Nusa<span class="text-violet-400">Voice</span> AI</div>
+        <div class="text-xs text-zinc-500">Generator Audio & Voice Over Nusantara</div>
+      </div>
+      <button id="profileBtn" class="btn rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-semibold hover:bg-zinc-800">🎙️ Profil Suara</button>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-6 grid lg:grid-cols-[1.25fr_.75fr] gap-5">
+    <section class="space-y-5">
+      <div class="glass rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h1 class="font-bold text-lg">Teks Narasi</h1>
+            <p class="text-xs text-zinc-500 mt-1">Tulis naskah voice-over yang ingin dibacakan.</p>
+          </div>
+          <select id="preset" class="rounded-lg bg-zinc-900 border border-zinc-700 px-3 py-2 text-xs">
+            <option value="">Preset...</option><option value="sunda">Sunda</option><option value="berita">Berita</option><option value="puitis">Puitis</option><option value="horor">Horor</option><option value="ceria">Ceria</option>
+          </select>
+        </div>
+        <textarea id="text" class="w-full rounded-xl border border-zinc-700 bg-zinc-950 p-4 outline-none focus:border-violet-500" placeholder="Contoh: Di balik kabut pegunungan, sebuah cerita lama kembali terdengar..."></textarea>
+        <div class="flex flex-wrap justify-between gap-2 mt-2 text-xs text-zinc-500"><span><b id="chars">0</b> karakter · <b id="words">0</b> kata</span><span>Estimasi <b id="duration">0:00</b></span></div>
+      </div>
+
+      <div class="glass rounded-2xl p-5">
+        <div class="flex items-center justify-between gap-3 mb-4"><h2 class="font-bold">🎧 Suara & Gaya</h2><select id="engine" class="rounded-xl bg-zinc-950 border border-zinc-700 px-3 py-2 text-xs"><option value="local">⚡ Lokal / Browser</option><option value="cloud">☁️ Gemini Cloud</option></select></div>
+        <div class="grid md:grid-cols-2 gap-4">
+          <label class="block"><span class="text-xs text-zinc-400">Dialek</span><select id="dialect" class="mt-1 w-full rounded-xl bg-zinc-950 border border-zinc-700 p-3"><option>Indonesia</option><option>Sunda</option><option>Jawa</option><option>Medan/Batak</option></select></label>
+          <label class="block"><span class="text-xs text-zinc-400">Vibe</span><select id="vibe" class="mt-1 w-full rounded-xl bg-zinc-950 border border-zinc-700 p-3"><option>berwibawa</option><option>ceria</option><option>sedih</option><option>puitis</option><option>seram</option></select></label>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-3 mt-4" id="voiceGrid"></div>
+        <div class="grid md:grid-cols-2 gap-5 mt-5">
+          <label><div class="flex justify-between text-xs text-zinc-400"><span>Kecepatan</span><b id="speedVal">1.00x</b></div><input id="speed" type="range" min="0.5" max="2" value="1" step="0.05" class="w-full mt-3"></label>
+          <label><div class="flex justify-between text-xs text-zinc-400"><span>Nada / pitch</span><b id="pitchVal">0</b></div><input id="pitch" type="range" min="-5" max="5" value="0" step="1" class="w-full mt-3"></label>
+        </div>
+        <p id="engineNote" class="text-[11px] text-zinc-600 mt-3">Mode Lokal: tidak memanggil Gemini. Suara memakai mesin TTS yang tersedia di HP/browser. Mode Cloud hanya dipakai saat kamu menekan Hasilkan Audio.</p>
+      </div>
+
+      <div class="glass rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-4"><div><h2 class="font-bold">🎵 BGM</h2><p class="text-xs text-zinc-500">BGM ikut tercampur ke file hasil export.</p></div><button id="bgmOff" class="btn text-xs rounded-lg border border-zinc-700 px-3 py-2">Tanpa BGM</button></div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2" id="bgmGrid"></div>
+        <div class="mt-4 flex items-center gap-3"><label class="text-xs text-zinc-400">Volume</label><input id="bgmVol" type="range" min="0" max="0.35" value="0.10" step="0.01" class="flex-1"><b id="bgmVolVal" class="text-xs">10%</b></div>
+      </div>
+
+      <button id="generate" class="btn w-full rounded-2xl bg-violet-600 hover:bg-violet-500 py-4 font-extrabold shadow-lg shadow-violet-900/20">✨ Hasilkan Audio</button>
+    </section>
+
+    <aside class="space-y-5">
+      <div class="glass rounded-2xl p-5 sticky top-24">
+        <div class="flex items-center justify-between"><h2 class="font-bold">🎚️ Hasil Audio</h2><span id="status" class="text-[11px] rounded-full bg-zinc-900 px-3 py-1 text-zinc-500">Belum ada</span></div>
+        <div class="mt-5 rounded-2xl bg-zinc-950 border border-zinc-800 p-4">
+          <div id="wave" class="wave opacity-30"></div>
+          <div class="flex items-center gap-3"><button id="play" disabled class="btn w-11 h-11 rounded-full bg-violet-600 disabled:opacity-30">▶</button><div class="flex-1"><div class="h-2 rounded-full bg-zinc-800 overflow-hidden"><div id="progress" class="h-full bg-violet-500 w-0"></div></div><div class="flex justify-between text-[11px] text-zinc-600 mt-1"><span id="current">0:00</span><span id="total">0:00</span></div></div><button id="stop" disabled class="btn text-xs text-zinc-400">■</button></div>
+          <audio id="audio" class="hidden"></audio>
+        </div>
+        <div class="grid grid-cols-2 gap-2 mt-4"><button id="downloadMp3" disabled class="btn rounded-xl border border-zinc-700 py-3 text-sm font-semibold disabled:opacity-30">⬇ MP3</button><button id="downloadWav" disabled class="btn rounded-xl border border-zinc-700 py-3 text-sm font-semibold disabled:opacity-30">⬇ WAV</button></div>
+        <div class="mt-5 border-t border-zinc-800 pt-4"><h3 class="font-semibold text-sm">Riwayat</h3><div id="history" class="mt-3 space-y-2 max-h-56 overflow-auto"></div></div>
+      </div>
+    </aside>
+  </main>
+
+  <div id="profileModal" class="hidden fixed inset-0 z-50 bg-black/70 p-4 items-center justify-center">
+    <div class="glass rounded-2xl max-w-lg w-full p-5">
+      <div class="flex justify-between items-center"><h2 class="font-bold">🎙️ Profil Suara</h2><button id="closeProfile" class="text-zinc-400">✕</button></div>
+      <p class="text-sm text-zinc-400 mt-3">Anda dapat merekam atau mengunggah contoh suara untuk membuat catatan karakter suara. Fitur ini <b>tidak mengkloning timbre</b>; audio akhir tetap dibuat oleh voice prebuilt Gemini.</p>
+      <div class="grid grid-cols-2 gap-2 mt-5"><button id="recordBtn" class="btn rounded-xl border border-zinc-700 py-3">● Mulai Rekam</button><label class="btn rounded-xl border border-zinc-700 py-3 text-center cursor-pointer">📁 Upload<input id="sampleFile" type="file" accept="audio/*" class="hidden"></label></div>
+      <div id="recordStatus" class="text-xs text-zinc-500 mt-3">Belum ada contoh suara.</div>
+      <button id="analyzeProfile" class="btn mt-5 w-full rounded-xl bg-zinc-100 text-zinc-900 py-3 font-bold">Analisis Profil</button>
+      <div id="profileResult" class="hidden mt-4 rounded-xl bg-zinc-950 border border-zinc-800 p-3 text-xs leading-5 text-zinc-300"></div>
+    </div>
+  </div>
+
+<script>
+const VOICES = [
+  ['Kore','Natural / netral'],['Puck','Ceria / ringan'],['Zephyr','Hangat / lembut'],['Orus','Tegas / berwibawa'],['Gacrux','Dalam / dokumenter'],['Aoede','Ekspresif / puitis'],['Leda','Lembut / naratif'],['Callirrhoe','Natural / jelas']
+];
+const BGM = [
+  ['sunda','🎋 Sunda kecapi','sunda'],['piano','🎹 Piano ambient','piano'],['horror','🌑 Horror drone','horror'],['ceria','☀️ Ceria upbeat','ceria']
+];
+let selectedVoice='Kore', selectedBgm=null, bgmVolume=.10, sourceBuffer=null, finalBuffer=null, audioUrl=null, audioBlob=null, recording=null, recordedChunks=[];
+const $=id=>document.getElementById(id);
+const fmt=s=>{s=Math.max(0,Math.round(s||0));return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`};
+function toast(msg,ok=true){const d=document.createElement('div');d.className='toast rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm shadow-xl';d.textContent=(ok?'✓ ':'⚠ ')+msg;$('toastRoot').appendChild(d);setTimeout(()=>d.remove(),3500)}
+function renderVoices(){ $('voiceGrid').innerHTML=VOICES.map(([n,desc])=>`<button data-voice="${n}" class="voice btn text-left rounded-xl border ${n===selectedVoice?'border-violet-500 bg-violet-500/10':'border-zinc-700 bg-zinc-950'} p-3"><div class="font-semibold text-sm">${n}</div><div class="text-[11px] text-zinc-500 mt-1">${desc}</div></button>`).join('');document.querySelectorAll('.voice').forEach(b=>b.onclick=()=>{selectedVoice=b.dataset.voice;renderVoices()})}
+function renderBgm(){ $('bgmGrid').innerHTML=BGM.map(([id,n])=>`<button data-bgm="${id}" class="bgm btn rounded-xl border ${selectedBgm===id?'border-violet-500 bg-violet-500/10':'border-zinc-700 bg-zinc-950'} p-3 text-left"><div class="text-sm font-semibold">${n}</div></button>`).join('');document.querySelectorAll('.bgm').forEach(b=>b.onclick=()=>{selectedBgm=b.dataset.bgm;renderBgm()})}
+renderVoices();renderBgm();
+$('text').oninput=()=>{const t=$('text').value;const words=t.trim()?t.trim().split(/\s+/).length:0;$('chars').textContent=t.length;$('words').textContent=words;$('duration').textContent=fmt(words/2.4)};
+$('preset').onchange=e=>{const p=e.target.value;const map={sunda:['Sunda','puitis','Wilujeng sumping. Carita ieu dimimitian ti hiji lembur anu tenang.'],berita:['Indonesia','berwibawa','Berita hari ini menghadirkan sejumlah perkembangan penting yang perlu kita simak.'],puitis:['Indonesia','puitis','Di antara sunyi dan cahaya, selalu ada cerita yang menunggu untuk ditemukan.'],horor:['Indonesia','seram','Malam itu, suara langkah terdengar dari ujung lorong yang seharusnya kosong.'],ceria:['Indonesia','ceria','Hari ini kita punya cerita seru yang sayang kalau dilewatkan!']};if(map[p]){[$('dialect').value,$('vibe').value,$('text').value]=map[p];$('text').oninput()}};
+$('speed').oninput=e=>$('speedVal').textContent=Number(e.target.value).toFixed(2)+'x';$('pitch').oninput=e=>$('pitchVal').textContent=e.target.value>0?'+'+e.target.value:e.target.value;
+$('bgmVol').oninput=e=>{bgmVolume=Number(e.target.value);$('bgmVolVal').textContent=Math.round(bgmVolume*100)+'%'};$('bgmOff').onclick=()=>{selectedBgm=null;renderBgm()};
+function pcmToAudioBuffer(base64,sampleRate=24000){const bin=atob(base64),bytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);const dv=new DataView(bytes.buffer);const samples=new Float32Array(bytes.byteLength/2);for(let i=0;i<samples.length;i++)samples[i]=Math.max(-1,Math.min(1,dv.getInt16(i*2,true)/32768));const ac=new AudioContext();const b=ac.createBuffer(1,samples.length,sampleRate);b.copyToChannel(samples,0);ac.close();return b}
+function bufferToWav(buffer){const ch=buffer.numberOfChannels,len=buffer.length*ch,ab=new ArrayBuffer(44+len*2),v=new DataView(ab);const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};ws(0,'RIFF');v.setUint32(4,36+len*2,true);ws(8,'WAVE');ws(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,ch,true);v.setUint32(24,buffer.sampleRate,true);v.setUint32(28,buffer.sampleRate*ch*2,true);v.setUint16(32,ch*2,true);v.setUint16(34,16,true);ws(36,'data');v.setUint32(40,len*2,true);let o=44;for(let i=0;i<buffer.length;i++)for(let c=0;c<ch;c++){let x=Math.max(-1,Math.min(1,buffer.getChannelData(c)[i]));v.setInt16(o,x<0?x*32768:x*32767,true);o+=2}return new Blob([ab],{type:'audio/wav'})}
+function audioBufferToMp3(buffer){if(!window.lamejs)throw new Error('MP3 encoder belum termuat. Pastikan koneksi internet aktif.');const enc=new lamejs.Mp3Encoder(buffer.numberOfChannels,buffer.sampleRate,128),ch0=buffer.getChannelData(0),ch1=buffer.numberOfChannels>1?buffer.getChannelData(1):null,block=1152,parts=[];for(let i=0;i<ch0.length;i+=block){const n=Math.min(block,ch0.length-i),l=new Int16Array(n),r=new Int16Array(n);for(let j=0;j<n;j++){l[j]=Math.max(-32768,Math.min(32767,Math.round(ch0[i+j]*32767)));r[j]=ch1?Math.max(-32768,Math.min(32767,Math.round(ch1[i+j]*32767))):l[j]}const out=enc.encodeBuffer(l,r);if(out.length)parts.push(out)}const end=enc.flush();if(end.length)parts.push(end);return new Blob(parts,{type:'audio/mpeg'})}
+function createBgm(ctx,id,dur){const out=ctx.createGain();out.gain.value=bgmVolume;out.connect(ctx.destination);if(!id)return null;const master=ctx.createGain();master.gain.value=1;master.connect(out);const now=ctx.currentTime;const stop=now+dur+.1;const osc=(freq,type,vol,detune=0)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.value=freq;o.detune.value=detune;g.gain.value=vol;o.connect(g);g.connect(master);o.start(now);o.stop(stop);return o};
+  if(id==='horror'){osc(55,'sine',.22);osc(82.4,'sine',.10,-8);osc(110,'triangle',.04,6)}
+  if(id==='piano'){[261.63,329.63,392,523.25].forEach((f,i)=>{const o=osc(f,'sine',.045);o.start(now+i*.15)})}
+  if(id==='sunda'){osc(196,'sine',.06);osc(293.66,'triangle',.035);osc(392,'sine',.025)}
+  if(id==='ceria'){osc(261.63,'triangle',.045);osc(329.63,'triangle',.035);osc(392,'triangle',.03)}
+  return out;
+}
+async function processBuffer(input){const speed=Number($('speed').value),pitch=Number($('pitch').value);const sr=input.sampleRate;const pitchRatio=Math.pow(2,pitch/12);const effectiveRate=speed*pitchRatio;const outDur=input.duration/effectiveRate;const off=new OfflineAudioContext(1,Math.ceil(outDur*sr),sr);const src=off.createBufferSource();src.buffer=input;src.playbackRate.value=effectiveRate;src.connect(off.destination);src.start();return await off.startRendering()}
+async function mixBgm(voice){if(!selectedBgm)return voice;const off=new OfflineAudioContext(1,voice.length,voice.sampleRate);const vs=off.createBufferSource();vs.buffer=voice;const vg=off.createGain();vg.gain.value=1;vs.connect(vg).connect(off.destination);const mg=off.createGain();mg.gain.value=bgmVolume;mg.connect(off.destination);const o=off.createOscillator();const settings={horror:[55,'sine'],piano:[196,'sine'],sunda:[196,'triangle'],ceria:[261.63,'triangle']}[selectedBgm]||[196,'sine'];o.frequency.value=settings[0];o.type=settings[1];o.connect(mg);o.start();o.stop(voice.duration);vs.start();return await off.startRendering()}
+function showWave(){const n=70;$('wave').innerHTML=Array.from({length:n},(_,i)=>`<i class="bar" style="animation-delay:${(i%13)*.05}s"></i>`).join('');}
+function setAudio(buffer){finalBuffer=buffer;audioBlob=bufferToWav(buffer);if(audioUrl)URL.revokeObjectURL(audioUrl);audioUrl=URL.createObjectURL(audioBlob);$('audio').src=audioUrl;$('play').disabled=false;$('stop').disabled=false;$('downloadWav').disabled=false;$('downloadMp3').disabled=false;$('total').textContent=fmt(buffer.duration);$('status').textContent='Siap';$('status').className='text-[11px] rounded-full bg-emerald-500/10 text-emerald-400 px-3 py-1';showWave();}
+$('engine').onchange=()=>{$('engineNote').textContent=$('engine').value==='local'?'Mode Lokal: tidak memanggil Gemini. Suara memakai mesin TTS yang tersedia di HP/browser.':'Mode Cloud: hanya menghubungi server/Gemini saat tombol Hasilkan Audio ditekan.'};
+function localSpeak(text){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang=$('dialect').value==='Sunda'?'id-ID':$('dialect').value==='Jawa'?'id-ID':'id-ID';u.rate=Number($('speed').value);u.pitch=Math.max(.1,1+Number($('pitch').value)/5);const voices=speechSynthesis.getVoices();const idVoice=voices.find(v=>v.lang.toLowerCase().startsWith('id'));if(idVoice)u.voice=idVoice;u.onstart=()=>{$('status').textContent='Berbicara';$('status').className='text-[11px] rounded-full bg-violet-500/10 text-violet-400 px-3 py-1'};u.onend=()=>{$('status').textContent='Selesai'};u.onerror=()=>toast('Browser tidak menyediakan mesin TTS lokal.',false);speechSynthesis.speak(u);$('stop').disabled=false;$('play').disabled=true;saveHistory(text);toast('Diputar dengan TTS lokal. Tidak ada panggilan Gemini.')}
+$('generate').onclick=async()=>{const text=$('text').value.trim();if(!text)return toast('Tulis teks narasi dulu.',false);if($('engine').value==='local'){localSpeak(text);return;}$('generate').disabled=true;$('generate').textContent='⏳ Membuat audio...';$('status').textContent='Memproses';try{const r=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,voice:selectedVoice,dialect:$('dialect').value,vibe:$('vibe').value,speed:Number($('speed').value),pitch:Number($('pitch').value)})});const j=await r.json();if(!r.ok)throw new Error(j.error||'Gagal membuat audio');sourceBuffer=pcmToAudioBuffer(j.audioBase64,j.sampleRate||24000);let processed=await processBuffer(sourceBuffer);processed=await mixBgm(processed);setAudio(processed);saveHistory(text);toast('Audio cloud berhasil dibuat.');}catch(e){$('status').textContent='Gagal';toast(e.message,false)}finally{$('generate').disabled=false;$('generate').textContent='✨ Hasilkan Audio'}};
+$('play').onclick=()=>{if($('audio').paused)$('audio').play();else $('audio').pause()};$('stop').onclick=()=>{speechSynthesis.cancel();$('audio').pause();$('audio').currentTime=0};$('audio').ontimeupdate=()=>{$('current').textContent=fmt($('audio').currentTime);$('progress').style.width=(($('audio').currentTime/($('audio').duration||1))*100)+'%'};$('audio').onplay=()=>{$('play').textContent='Ⅱ'};$('audio').onpause=()=>{$('play').textContent='▶'};
+function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+$('downloadWav').onclick=()=>finalBuffer&&download(bufferToWav(finalBuffer),'nusavoice-output.wav');$('downloadMp3').onclick=()=>{try{if(finalBuffer)download(audioBufferToMp3(finalBuffer),'nusavoice-output.mp3')}catch(e){toast(e.message,false)}};
+function saveHistory(text){const h=JSON.parse(localStorage.getItem('nv_history')||'[]');h.unshift({text:text.slice(0,90),voice:selectedVoice,time:new Date().toLocaleString('id-ID')});localStorage.setItem('nv_history',JSON.stringify(h.slice(0,12)));renderHistory()}
+function renderHistory(){const h=JSON.parse(localStorage.getItem('nv_history')||'[]');$('history').innerHTML=h.length?h.map(x=>`<div class="rounded-xl bg-zinc-950 border border-zinc-800 p-3"><div class="text-xs line-clamp-2">${escapeHtml(x.text)}</div><div class="text-[10px] text-zinc-600 mt-1">${x.voice} · ${x.time}</div></div>`).join(''):'<div class="text-xs text-zinc-600">Belum ada riwayat.</div>'}function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}renderHistory();
+let sampleBlob=null;
+$('profileBtn').onclick=()=>{$('profileModal').classList.remove('hidden');$('profileModal').classList.add('flex')};$('closeProfile').onclick=closeProfile;function closeProfile(){$('profileModal').classList.add('hidden');$('profileModal').classList.remove('flex')}
+$('sampleFile').onchange=e=>{sampleBlob=e.target.files[0];$('recordStatus').textContent=sampleBlob?`File: ${sampleBlob.name}`:'Belum ada contoh suara.'};
+$('recordBtn').onclick=async()=>{if(recording){recording.stop();return}try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});recordedChunks=[];recording=new MediaRecorder(stream);recording.ondataavailable=e=>e.data.size&&recordedChunks.push(e.data);recording.onstop=()=>{sampleBlob=new Blob(recordedChunks,{type:'audio/webm'});stream.getTracks().forEach(t=>t.stop());recording=null;$('recordBtn').textContent='● Mulai Rekam';$('recordStatus').textContent='Rekaman siap dianalisis.'};recording.start();$('recordBtn').textContent='■ Stop Rekam';$('recordStatus').textContent='Sedang merekam...'}catch(e){toast('Izin mikrofon tidak tersedia.',false)}};
+$('analyzeProfile').onclick=async()=>{if(!sampleBlob)return toast('Rekam atau upload contoh suara dulu.',false);$('profileResult').classList.remove('hidden');$('profileResult').textContent='Profil suara tersimpan sebagai referensi lokal. Untuk menjaga privasi, aplikasi ini tidak mengunggah contoh suara ke server pada versi ini. Gunakan hasil pengaturan dialek, vibe, voice, speed, dan pitch untuk menyesuaikan karakter output.';localStorage.setItem('nv_profile','ready');toast('Profil suara disiapkan secara lokal.')};
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}))}
+speechSynthesis.onvoiceschanged=()=>{};
+</script>
+</body></html>
