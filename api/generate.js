@@ -26,8 +26,8 @@ export default async function handler(req, res) {
       return;
     }
 
-    if (text.length > 15000) {
-      res.status(400).json({ error: 'Maksimal 15.000 karakter per generasi.' });
+    if (text.length > 1500) {
+      res.status(400).json({ error: 'Maksimal 1500 karakter per generasi.' });
       return;
     }
 
