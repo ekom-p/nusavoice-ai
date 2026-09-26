@@ -104,6 +104,7 @@
 const VOICES = [
   ['Kore','Natural / netral'],['Puck','Ceria / ringan'],['Zephyr','Hangat / lembut'],['Orus','Tegas / berwibawa'],['Gacrux','Dalam / dokumenter'],['Aoede','Ekspresif / puitis'],['Leda','Lembut / naratif'],['Callirrhoe','Natural / jelas']
 ];
+const VOICE_NAMES={Kore:'Febri',Puck:'Sulaiman',Zephyr:'Anto',Orus:'Firman',Gacrux:'Indah',Aoede:'Shinta',Leda:'Mega',Callirrhoe:'Fatimah'};
 const BGM = [
   ['sunda','🎋 Sunda kecapi','sunda'],['piano','🎹 Piano ambient','piano'],['horror','🌑 Horror drone','horror'],['ceria','☀️ Ceria upbeat','ceria']
 ];
@@ -112,7 +113,7 @@ const $=id=>document.getElementById(id);
 const fmt=s=>{s=Math.max(0,Math.round(s||0));return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`};
 function toast(msg,ok=true){const d=document.createElement('div');d.className='toast rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm shadow-xl';d.textContent=(ok?'✓ ':'⚠ ')+msg;$('toastRoot').appendChild(d);setTimeout(()=>d.remove(),3500)}
 function renderVoices(){ $('voiceGrid').innerHTML=VOICES.map(([n,desc])=>`<button data-voice="${n}" class="voice btn text-left rounded-xl border ${n===selectedVoice?'border-violet-500 bg-violet-500/10':'border-zinc-700 bg-zinc-950'} p-3"><div class="font-semibold text-sm">${n}</div><div class="text-[11px] text-zinc-500 mt-1">${desc}</div></button>`).join('');document.querySelectorAll('.voice').forEach(b=>b.onclick=()=>{selectedVoice=b.dataset.voice;renderVoices()})}
-function renderBgm(){ $('bgmGrid').innerHTML=BGM.map(([id,n])=>`<button data-bgm="${id}" class="bgm btn rounded-xl border ${selectedBgm===id?'border-violet-500 bg-violet-500/10':'border-zinc-700 bg-zinc-950'} p-3 text-left"><div class="text-sm font-semibold">${n}</div></button>`).join('');document.querySelectorAll('.bgm').forEach(b=>b.onclick=()=>{selectedBgm=b.dataset.bgm;renderBgm()})}
+function renderBgm(){ $('bgmGrid').innerHTML=BGM.map(([id,n])=>`<button data-bgm="${id}" class="bgm btn rounded-xl border ${selectedBgm===id?'border-violet-500 bg-violet-500/10':'border-zinc-700 bg-zinc-950'} p-3 text-left"><div class="text-sm font-semibold">${VOICE_NAMES[n]||n}</div></button>`).join('');document.querySelectorAll('.bgm').forEach(b=>b.onclick=()=>{selectedBgm=b.dataset.bgm;renderBgm()})}
 renderVoices();renderBgm();
 $('text').oninput=()=>{const t=$('text').value;const words=t.trim()?t.trim().split(/\s+/).length:0;$('chars').textContent=t.length;$('words').textContent=words;$('duration').textContent=fmt(words/2.4)};
 $('preset').onchange=e=>{const p=e.target.value;const map={sunda:['Sunda','puitis','Wilujeng sumping. Carita ieu dimimitian ti hiji lembur anu tenang.'],berita:['Indonesia','berwibawa','Berita hari ini menghadirkan sejumlah perkembangan penting yang perlu kita simak.'],puitis:['Indonesia','puitis','Di antara sunyi dan cahaya, selalu ada cerita yang menunggu untuk ditemukan.'],horor:['Indonesia','seram','Malam itu, suara langkah terdengar dari ujung lorong yang seharusnya kosong.'],ceria:['Indonesia','ceria','Hari ini kita punya cerita seru yang sayang kalau dilewatkan!']};if(map[p]){[$('dialect').value,$('vibe').value,$('text').value]=map[p];$('text').oninput()}};
